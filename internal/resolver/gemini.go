@@ -30,7 +30,7 @@ func ResolveDocs(deps []string) ([]DocResult, error) {
 
 	prompt := fmt.Sprintf("Return a JSON array of objects with 'name' and 'docUrl' for these librariesl, make sure they are original docs: %v. Only return the JSON, no markdown code blocks.", deps)
 
-	resp, err := client.Models.GenerateContent(ctx, "gemini-3.0-flash", genai.Text(prompt), nil)
+	resp, err := client.Models.GenerateContent(ctx, "gemini-3-flash-preview", genai.Text(prompt), nil)
 	if err != nil {
 		return nil, err
 	}
