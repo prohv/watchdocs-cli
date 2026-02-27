@@ -2,6 +2,36 @@
 
 WatchDocs is a lightweight CLI tool designed to bridge the gap between project dependencies and their official documentation. It automates the process of finding the right docs by scanning project manifests and using Gemini AI to resolve validated URLs.
 
+## Getting Started
+
+### 1. Prerequisites
+- [Go](https://go.dev/doc/install) 1.21 or higher.
+- A [Google Gemini API Key](https://aistudio.google.com/app/apikey).
+
+### 2. Installation
+Build the executable:
+```powershell
+go build -o watchdocs-cli.exe
+```
+
+### 3. Setup
+Set your Gemini API key in your environment:
+```powershell
+# Windows (PowerShell)
+$env:GEMINI_API_KEY = "your_api_key_here"
+
+# Linux/macOS
+export GEMINI_API_KEY="your_api_key_here"
+```
+
+### 4. Usage
+Run the scan in your project directory:
+```powershell
+./watchdocs-cli.exe scan
+```
+
+---
+
 ### Command: `watchdocs scan`
 
 * **Discovery**: Scans the project root for manifest files.
