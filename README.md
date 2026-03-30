@@ -1,11 +1,11 @@
 # WatchDocs CLI (Go)
 
-WatchDocs is a lightweight CLI tool designed to bridge the gap between project dependencies and their official documentation. It automates the process of finding the right docs by scanning project manifests and using Gemini AI to resolve validated URLs.
+WatchDocs is a lightweight CLI tool that scans project manifest files for dependencies and uses Google Gemini AI to automatically find their official documentation URLs.
 
 ## Getting Started
 
 ### 1. Prerequisites
-- [Go](https://go.dev/doc/install) 1.21 or higher.
+- [Go](https://go.dev/doc/install) 1.25.2 or higher.
 - A [Google Gemini API Key](https://aistudio.google.com/app/apikey).
 
 ### 2. Installation
@@ -32,68 +32,53 @@ Run the scan in your project directory:
 
 ---
 
-### Command: `watchdocs scan`
+## Commands
 
-* **Discovery**: Scans the project root for manifest files.
-* **Parsing**: Extracts dependency names and versions.
-* **Resolution**: Uses Gemini to identify official documentation URLs.
-* **Validation**: Performs HEAD requests to ensure URLs are active.
-* **Caching**: Stores results locally to prevent redundant API calls.
-* **Output**: Renders a clean table or JSON output.
+### `watchdocs scan`
 
-### Command: `watchdocs open <name>`
+Scans the project root for manifest files, extracts dependencies, and resolves documentation URLs via Gemini AI.
 
-* **Browser Integration**: Opens the resolved documentation URL in the default system browser.
+**Workflow:**
+1. **Discovery**: Scans the project root for supported manifest files.
+2. **Parsing**: Extracts dependency names and versions.
+3. **Resolution**: Uses Gemini AI to identify official documentation URLs.
+4. **Output**: Displays results in a table format.
 
 ---
 
-## Architecture
+## Supported Manifests
 
-The tool is built on a modular flow:
-
-1. **CLI Layer**: Handles user input and command execution.
-2. **Scanner/Parser**: Detects files (e.g., `package.json`, `go.mod`) and extracts raw data.
-3. **DocResolver**: Interface for converting library names into URLs.
-4. **Cache Layer**: Checksums manifest files to skip the AI step for unchanged projects.
-5. **Output/Browser**: Presents data and handles interaction.
+Currently supported:
+- **Web**: `package.json`
+- **Go**: `go.mod`
 
 ---
 
 ## Technical Stack
 
-* **Language**: Go 1.21+
-* **CLI Framework**: Cobra
-* **Formats Supported**: JSON, TOML, YAML, XML
-* **AI Integration**: Google Gemini API (via `google-generative-ai-go`)
-* **Data Persistence**: Local JSON cache in `~/.watchdocs/`
+- **Language**: Go 1.25.2+
+- **CLI Framework**: Cobra
+- **AI Integration**: Google Gemini API (`google.golang.org/genai`)
+- **Model**: `gemini-3-flash-preview`
 
 ---
 
-## Supported Manifests (v1)
+## Gemini Integration
 
-* **Web**: `package.json`
-* **Python**: `requirements.txt`, `pyproject.toml`
-* **Go**: `go.mod`
-* **Rust**: `Cargo.toml`
-* **Java**: `pom.xml`
-* **Flutter**: `pubspec.yaml`
+- **Strict JSON Output**: Prompts ensure the AI returns only structured JSON.
+- **Official Sources**: Prioritizes official documentation over third-party resources.
+- **Version Awareness**: Attempts to resolve documentation for the specific library version.
 
 ---
 
-## Gemini Integration Logic
+## Project Structure
 
-* **Strict JSON**: Prompting ensures the AI returns only structured JSON.
-* **Official Sources**: Constraints prioritize official documentation over blogs or third-party tutorials.
-* **Version Awareness**: Attempts to resolve documentation specific to the installed library version.
-* **Security**: Rejects non-HTTPS URLs and validates endpoints via HTTP HEAD checks.
-
----
-
-## Core Modules
-
-* `cmd/`: CLI definitions.
-* `scanner/`: Manifest detection logic.
-* `parsers/`: Manifest-specific extraction logic.
-* `resolver/`: Gemini API integration and prompt management.
-* `cache/`: SHA-256 manifest hashing and storage.
-* `output/`: Terminal rendering and JSON formatting.
+```
+watchdocs-cli/
+├── cmd/              # CLI command definitions
+├── internal/
+│   ├── scanner/      # Manifest file detection
+│   ├── parser/       # Manifest-specific parsing logic
+│   └── resolver/     # Gemini API integration
+└── main.go           # Entry point
+```
