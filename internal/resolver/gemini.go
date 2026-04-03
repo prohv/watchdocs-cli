@@ -25,14 +25,18 @@ func ResolveDocs(deps []string) ([]DocResult, error) {
 		Backend: genai.BackendGeminiAPI,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Gemini client: %v", err)
 	}
 
-	prompt := fmt.Sprintf("Return a JSON array of objects with 'name' and 'docUrl' for these librariesl, make sure they are original docs: %v. Only return the JSON, no markdown code blocks.", deps)
+	prompt := fmt.Sprintf("Return a JSON array of objects with 'name' and 'docUrl' for these libraries, make sure they are original docs: %v. Only return the JSON, no markdown code blocks.", deps)
 
 	resp, err := client.Models.GenerateContent(ctx, "gemini-3-flash-preview", genai.Text(prompt), nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Gemini API call failed: %v", err)
+	}
+
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("Gemini returned an empty response")
 	}
 
 	var results []DocResult
