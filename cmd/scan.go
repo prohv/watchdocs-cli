@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/prohv/watchdocs-cli/internal/models"
 	"github.com/prohv/watchdocs-cli/internal/parser"
+	"github.com/prohv/watchdocs-cli/internal/resolver"
 	"github.com/prohv/watchdocs-cli/internal/scanner"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +33,7 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		var allDeps []string
+		var allDeps []models.Dependency
 		for _, m := range found {
 			fmt.Printf("Found: %s\n", m.Type)
 			if m.Type == "package.json" {
@@ -40,18 +42,14 @@ var scanCmd = &cobra.Command{
 					fmt.Printf("Error parsing %s: %v\n", m.Type, err)
 					continue
 				}
-				for _, d := range deps {
-					allDeps = append(allDeps, d.Name)
-				}
+				allDeps = append(allDeps, deps...)
 			} else if m.Type == "go.mod" {
 				deps, err := parser.ParseGoMod(m.Path)
 				if err != nil {
 					fmt.Printf("Error parsing %s: %v\n", m.Type, err)
 					continue
 				}
-				for _, d := range deps {
-					allDeps = append(allDeps, d.Name)
-				}
+				allDeps = append(allDeps, deps...)
 			}
 		}
 
@@ -60,9 +58,18 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Println("\n--- Dependencies Found ---")
+		fmt.Println("\n--- Resolving docs ---")
 		for _, dep := range allDeps {
-			fmt.Println(" -", dep)
+			if dep.Ecosystem == "npm" {
+				result, err := resolver.OnlineNpmResolver(dep)
+				if err != nil || result == nil {
+					fmt.Printf("%-40s -> (not found)\n", dep.Name)
+					continue
+				}
+				fmt.Printf("%-40s -> %s\n", result.Name, result.DocURL)
+			} else {
+				fmt.Printf("%-40s -> (no resolver)\n", dep.Name)
+			}
 		}
 	},
 }
