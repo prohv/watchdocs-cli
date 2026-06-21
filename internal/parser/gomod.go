@@ -4,16 +4,18 @@ import (
 	"bufio"
 	"os"
 	"strings"
+
+	"github.com/prohv/watchdocs-cli/internal/models"
 )
 
-func ParseGoMod(path string) ([]Dependency, error) {
+func ParseGoMod(path string) ([]models.Dependency, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var deps []Dependency
+	var deps []models.Dependency
 	scanner := bufio.NewScanner(file)
 	inRequire := false
 
@@ -40,7 +42,7 @@ func ParseGoMod(path string) ([]Dependency, error) {
 		if strings.HasPrefix(line, "require ") {
 			parts := strings.Fields(line)
 			if len(parts) >= 3 {
-				deps = append(deps, Dependency{Name: parts[1], Version: parts[2]})
+				deps = append(deps, models.Dependency{Name: parts[1], Version: parts[2], Ecosystem: "go"})
 			}
 			continue
 		}
@@ -48,7 +50,7 @@ func ParseGoMod(path string) ([]Dependency, error) {
 		if inRequire {
 			parts := strings.Fields(line)
 			if len(parts) >= 2 {
-				deps = append(deps, Dependency{Name: parts[0], Version: parts[1]})
+				deps = append(deps, models.Dependency{Name: parts[0], Version: parts[1], Ecosystem: "go"})
 			}
 		}
 	}

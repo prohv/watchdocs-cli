@@ -3,6 +3,8 @@ package parser
 import (
 	"encoding/json"
 	"os"
+
+	"github.com/prohv/watchdocs-cli/internal/models"
 )
 
 type PackageJSON struct {
@@ -10,7 +12,7 @@ type PackageJSON struct {
 	DevDependencies map[string]string `json:"devDependencies"`
 }
 
-func ParseNPM(path string) ([]Dependency, error) {
+func ParseNPM(path string) ([]models.Dependency, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -21,12 +23,12 @@ func ParseNPM(path string) ([]Dependency, error) {
 		return nil, err
 	}
 
-	var deps []Dependency
+	var deps []models.Dependency
 	for name, version := range pkg.Dependencies {
-		deps = append(deps, Dependency{Name: name, Version: version})
+		deps = append(deps, models.Dependency{Name: name, Version: version, Ecosystem: "npm", Type: "prod"})
 	}
 	for name, version := range pkg.DevDependencies {
-		deps = append(deps, Dependency{Name: name, Version: version})
+		deps = append(deps, models.Dependency{Name: name, Version: version, Ecosystem: "npm", Type: "dev"})
 	}
 
 	return deps, nil
