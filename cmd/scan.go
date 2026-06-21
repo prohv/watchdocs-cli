@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"github.com/spf13/cobra"
-	"github.com/prohv/watchdocs-cli/internal/scanner"
-	"github.com/prohv/watchdocs-cli/internal/resolver"
+
 	"github.com/prohv/watchdocs-cli/internal/parser"
+	"github.com/prohv/watchdocs-cli/internal/scanner"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -15,12 +15,12 @@ func init() {
 
 var scanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "Scan project for dependencies and find docs",
+	Short: "Scan project for dependencies",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Scanning project...")
 		cwd, _ := os.Getwd()
 		found, err := scanner.Scan(cwd)
-		
+
 		if err != nil {
 			fmt.Println("Error scanning:", err)
 			return
@@ -30,6 +30,7 @@ var scanCmd = &cobra.Command{
 			fmt.Println("No manifest files found!")
 			return
 		}
+
 		var allDeps []string
 		for _, m := range found {
 			fmt.Printf("Found: %s\n", m.Type)
@@ -55,20 +56,13 @@ var scanCmd = &cobra.Command{
 		}
 
 		if len(allDeps) == 0 {
-			fmt.Println("No dependencies found to resolve.")
+			fmt.Println("No dependencies found.")
 			return
 		}
 
-		fmt.Printf("Asking Gemini for docs for %d dependencies...\n", len(allDeps))
-		results, err := resolver.ResolveDocs(allDeps)
-		if err != nil {
-			fmt.Printf("API Error: %v\n", err)
-			return
-		}
-
-		fmt.Println("\n--- Official Documentation ---")
-		for _, res := range results {
-			fmt.Printf("%-20s -> %s\n", res.Name, res.DocURL)
+		fmt.Println("\n--- Dependencies Found ---")
+		for _, dep := range allDeps {
+			fmt.Println(" -", dep)
 		}
 	},
 }
