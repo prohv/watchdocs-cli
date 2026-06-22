@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v0.1.5] - 2026-06-23
+
+### Changed
+- Pruned binary targets to Windows (x64), Linux (x64), and Apple Silicon macOS (arm64) to optimize footprint (dropped Intel macOS)
+- Compressed all binaries using UPX, reducing total package size from ~38 MB to ~7.2 MB
+
 ## [v0.1.4] - 2026-06-23
 
 ### Fixed
