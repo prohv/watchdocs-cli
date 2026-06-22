@@ -123,6 +123,19 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
+		// deduplicate by ecosystem:name — handles projects with multiple pip manifests
+		// (e.g. pyproject.toml + requirements.txt + uv.lock) coexisting
+		seen := map[string]bool{}
+		var uniqueDeps []models.Dependency
+		for _, dep := range allDeps {
+			key := dep.Ecosystem + ":" + dep.Name
+			if !seen[key] {
+				seen[key] = true
+				uniqueDeps = append(uniqueDeps, dep)
+			}
+		}
+		allDeps = uniqueDeps
+
 		var results []DepResult
 
 		for _, dep := range allDeps {
