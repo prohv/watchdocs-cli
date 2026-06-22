@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/prohv/watchdocs-cli/internal/models"
 	"github.com/prohv/watchdocs-cli/internal/parser"
@@ -13,9 +14,9 @@ import (
 )
 
 type ScanResult struct {
-	Scanned []string      `json:"scanned"`
-	Total   int           `json:"total"`
-	Results []DepResult   `json:"results"`
+	Scanned []string    `json:"scanned"`
+	Total   int         `json:"total"`
+	Results []DepResult `json:"results"`
 }
 
 type DepResult struct {
@@ -28,6 +29,8 @@ type DepResult struct {
 }
 
 func init() {
+	scanCmd.Flags().StringP("path", "p", "", "Path to project directory (defaults to cwd)")
+	scanCmd.Flags().StringP("ecosystem", "e", "", "Filter by ecosystem(s), comma-separated (e.g. npm,go)")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -35,8 +38,23 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan project for dependencies",
 	Run: func(cmd *cobra.Command, args []string) {
-		cwd, _ := os.Getwd()
-		found, err := scanner.Scan(cwd)
+		pathFlag, _ := cmd.Flags().GetString("path")
+		ecoFlag, _ := cmd.Flags().GetString("ecosystem")
+
+		root := pathFlag
+		if root == "" {
+			root, _ = os.Getwd()
+		}
+
+		// build ecosystem filter set
+		ecoFilter := map[string]bool{}
+		if ecoFlag != "" {
+			for _, e := range strings.Split(ecoFlag, ",") {
+				ecoFilter[strings.TrimSpace(e)] = true
+			}
+		}
+
+		found, err := scanner.Scan(root)
 		if err != nil {
 			printError("scan_failed", err.Error())
 			return
@@ -123,8 +141,7 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		// deduplicate by ecosystem:name — handles projects with multiple pip manifests
-		// (e.g. pyproject.toml + requirements.txt + uv.lock) coexisting
+		// deduplicate by ecosystem:name
 		seen := map[string]bool{}
 		var uniqueDeps []models.Dependency
 		for _, dep := range allDeps {
@@ -136,45 +153,27 @@ var scanCmd = &cobra.Command{
 		}
 		allDeps = uniqueDeps
 
+		// apply ecosystem filter if set
+		if len(ecoFilter) > 0 {
+			var filtered []models.Dependency
+			for _, dep := range allDeps {
+				if ecoFilter[dep.Ecosystem] {
+					filtered = append(filtered, dep)
+				}
+			}
+			allDeps = filtered
+		}
+
+		if len(allDeps) == 0 {
+			printError("no_deps", "no dependencies found for the specified ecosystem(s)")
+			return
+		}
+
 		var results []DepResult
 
 		for _, dep := range allDeps {
-			var result *models.DocResult
-
-			switch dep.Ecosystem {
-			case "npm":
-				result, err = resolver.OnlineNpmResolver(dep)
-			case "go":
-				result, err = resolver.OnlineGoResolver(dep)
-			case "pip":
-				result, err = resolver.OnlinePipResolver(dep)
-			case "cargo":
-				result, err = resolver.OnlineCargoResolver(dep)
-			case "pub":
-				result, err = resolver.OnlinePubResolver(dep)
-			case "maven":
-				result, err = resolver.OnlineMavenResolver(dep)
-			}
-
-			if err != nil || result == nil || result.DocURL == "" {
-				results = append(results, DepResult{
-					Name:      dep.Name,
-					Version:   dep.Version,
-					Ecosystem: dep.Ecosystem,
-					Type:      dep.Type,
-					Status:    "not_found",
-				})
-				continue
-			}
-
-			results = append(results, DepResult{
-				Name:      result.Name,
-				Version:   result.Version,
-				Ecosystem: result.Ecosystem,
-				Type:      result.Type,
-				DocURL:    result.DocURL,
-				Status:    "resolved",
-			})
+			result := resolveDoc(dep)
+			results = append(results, result)
 		}
 
 		output := ScanResult{
@@ -187,6 +186,45 @@ var scanCmd = &cobra.Command{
 		enc.SetIndent("", "  ")
 		enc.Encode(output)
 	},
+}
+
+func resolveDoc(dep models.Dependency) DepResult {
+	var result *models.DocResult
+	var err error
+
+	switch dep.Ecosystem {
+	case "npm":
+		result, err = resolver.OnlineNpmResolver(dep)
+	case "go":
+		result, err = resolver.OnlineGoResolver(dep)
+	case "pip":
+		result, err = resolver.OnlinePipResolver(dep)
+	case "cargo":
+		result, err = resolver.OnlineCargoResolver(dep)
+	case "pub":
+		result, err = resolver.OnlinePubResolver(dep)
+	case "maven":
+		result, err = resolver.OnlineMavenResolver(dep)
+	}
+
+	if err != nil || result == nil || result.DocURL == "" {
+		return DepResult{
+			Name:      dep.Name,
+			Version:   dep.Version,
+			Ecosystem: dep.Ecosystem,
+			Type:      dep.Type,
+			Status:    "not_found",
+		}
+	}
+
+	return DepResult{
+		Name:      result.Name,
+		Version:   result.Version,
+		Ecosystem: result.Ecosystem,
+		Type:      result.Type,
+		DocURL:    result.DocURL,
+		Status:    "resolved",
+	}
 }
 
 func printError(code string, msg string) {
