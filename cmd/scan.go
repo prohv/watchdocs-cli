@@ -101,6 +101,13 @@ var scanCmd = &cobra.Command{
 					continue
 				}
 				allDeps = append(allDeps, deps...)
+			} else if m.Type == "pom.xml" {
+				deps, err := parser.ParsePomXml(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			} else if m.Type == "uv.lock" {
 				deps, err := parser.ParseUvLock(string(content))
 				if err != nil {
@@ -132,6 +139,8 @@ var scanCmd = &cobra.Command{
 				result, err = resolver.OnlineCargoResolver(dep)
 			case "pub":
 				result, err = resolver.OnlinePubResolver(dep)
+			case "maven":
+				result, err = resolver.OnlineMavenResolver(dep)
 			}
 
 			if err != nil || result == nil || result.DocURL == "" {
