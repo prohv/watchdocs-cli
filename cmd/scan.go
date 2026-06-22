@@ -73,6 +73,13 @@ var scanCmd = &cobra.Command{
 					continue
 				}
 				allDeps = append(allDeps, deps...)
+			} else if m.Type == "Cargo.toml" {
+				deps, err := parser.ParseCargoToml(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			} else if m.Type == "requirements.txt" {
 				deps, err := parser.ParseRequirementsTxt(string(content))
 				if err != nil {
@@ -114,6 +121,8 @@ var scanCmd = &cobra.Command{
 				result, err = resolver.OnlineGoResolver(dep)
 			case "pip":
 				result, err = resolver.OnlinePipResolver(dep)
+			case "cargo":
+				result, err = resolver.OnlineCargoResolver(dep)
 			}
 
 			if err != nil || result == nil || result.DocURL == "" {
