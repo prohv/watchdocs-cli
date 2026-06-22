@@ -112,6 +112,8 @@ var scanCmd = &cobra.Command{
 				result, err = resolver.OnlineNpmResolver(dep)
 			case "go":
 				result, err = resolver.OnlineGoResolver(dep)
+			case "pip":
+				result, err = resolver.OnlinePipResolver(dep)
 			}
 
 			if err != nil || result == nil || result.DocURL == "" {
