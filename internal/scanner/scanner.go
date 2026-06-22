@@ -13,7 +13,7 @@ type DetectedManifest struct {
 func Scan(root string) ([]DetectedManifest, error) {
 	manifests := []string{
 		"package.json", "go.mod", "requirements.txt",
-		"pyproject.toml", "Cargo.toml", "pom.xml",
+		"pyproject.toml", "Cargo.toml", "pom.xml", "uv.lock",
 	}
 
 	var found []DetectedManifest

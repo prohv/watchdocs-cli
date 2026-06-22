@@ -73,6 +73,27 @@ var scanCmd = &cobra.Command{
 					continue
 				}
 				allDeps = append(allDeps, deps...)
+			} else if m.Type == "requirements.txt" {
+				deps, err := parser.ParseRequirementsTxt(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "pyproject.toml" {
+				deps, err := parser.ParsePyProjectToml(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "uv.lock" {
+				deps, err := parser.ParseUvLock(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			}
 		}
 
