@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/prohv/watchdocs-cli/internal/models"
 	"github.com/prohv/watchdocs-cli/internal/parser"
@@ -171,11 +172,33 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		var results []DepResult
+		type indexedResult struct {
+			index  int
+			result DepResult
+		}
 
-		for _, dep := range allDeps {
-			result := resolveDoc(dep)
-			results = append(results, result)
+		results := make([]DepResult, len(allDeps))
+		ch := make(chan indexedResult, len(allDeps))
+		sem := make(chan struct{}, 16)
+		var wg sync.WaitGroup
+
+		for i, dep := range allDeps {
+			wg.Add(1)
+			go func(i int, dep models.Dependency) {
+				defer wg.Done()
+				sem <- struct{}{}        // acquire slot
+				defer func() { <-sem }() // release slot
+				ch <- indexedResult{index: i, result: resolveDoc(dep)}
+			}(i, dep)
+		}
+
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+
+		for r := range ch {
+			results[r.index] = r.result
 		}
 
 		enc := json.NewEncoder(os.Stdout)
