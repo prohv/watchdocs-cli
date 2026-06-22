@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v0.1.4] - 2026-06-23
+
+### Fixed
+- README.md excluded from npm package — now shows correctly on npm package page
+
+### Changed
+- Unified `--help` output showing all commands and flags in a single view
+- Updated package description and keywords for better discoverability
+
 ## [v0.1.2] - 2026-06-22
 
 ### Added
