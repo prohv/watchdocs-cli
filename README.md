@@ -1,34 +1,14 @@
-# WatchDocs CLI (Go)
+# WatchDocs CLI
 
-WatchDocs is a lightweight CLI tool that scans project manifest files for dependencies and uses Google Gemini AI to automatically find their official documentation URLs.
+A lightweight CLI tool that scans a project for dependencies and returns their official documentation URLs as structured JSON — built for AI agents and developers.
 
-## Getting Started
+## Install
 
-### 1. Prerequisites
-- [Go](https://go.dev/doc/install) 1.25.2 or higher.
-- A [Google Gemini API Key](https://aistudio.google.com/app/apikey).
-
-### 2. Installation
-Build the executable:
-```powershell
-go build -o watchdocs-cli.exe
+```bash
+npx watchdocs scan
 ```
 
-### 3. Setup
-Set your Gemini API key in your environment:
-```powershell
-# Windows (PowerShell)
-$env:GEMINI_API_KEY = "your_api_key_here"
-
-# Linux/macOS
-export GEMINI_API_KEY="your_api_key_here"
-```
-
-### 4. Usage
-Run the scan in your project directory:
-```powershell
-./watchdocs-cli.exe scan
-```
+No installation needed. Works via `npx` anywhere Node.js is available.
 
 ---
 
@@ -36,38 +16,86 @@ Run the scan in your project directory:
 
 ### `watchdocs scan`
 
-Scans the project root for manifest files, extracts dependencies, and resolves documentation URLs via Gemini AI.
+Recursively scans the current directory for manifest files, parses dependencies, and resolves official doc URLs from their respective registries.
 
-**Workflow:**
-1. **Discovery**: Scans the project root for supported manifest files.
-2. **Parsing**: Extracts dependency names and versions.
-3. **Resolution**: Uses Gemini AI to identify official documentation URLs.
-4. **Output**: Displays results in a table format.
+```bash
+watchdocs scan
+watchdocs scan --path ./frontend
+watchdocs scan --ecosystem npm,go
+watchdocs scan --slim
+```
 
----
-
-## Supported Manifests
-
-Currently supported:
-- **Web**: `package.json`
-- **Go**: `go.mod`
-
----
-
-## Technical Stack
-
-- **Language**: Go 1.25.2+
-- **CLI Framework**: Cobra
-- **AI Integration**: Google Gemini API (`google.golang.org/genai`)
-- **Model**: `gemini-3-flash-preview`
+| Flag | Description |
+|---|---|
+| `--path <dir>` | Target a specific directory instead of cwd |
+| `--ecosystem <list>` | Filter by ecosystem(s), comma-separated |
+| `--slim` | Return only `name` and `docUrl` per result (saves tokens) |
 
 ---
 
-## Gemini Integration
+### `watchdocs lookup`
 
-- **Strict JSON Output**: Prompts ensure the AI returns only structured JSON.
-- **Official Sources**: Prioritizes official documentation over third-party resources.
-- **Version Awareness**: Attempts to resolve documentation for the specific library version.
+Look up a single package by name without needing a manifest file.
+
+```bash
+watchdocs lookup express --ecosystem npm
+watchdocs lookup github.com/spf13/cobra --ecosystem go
+watchdocs lookup requests --ecosystem pip --slim
+```
+
+| Flag | Description |
+|---|---|
+| `--ecosystem <eco>` | Required — one of: `npm`, `go`, `pip`, `cargo`, `pub`, `maven` |
+| `--slim` | Return only `name` and `docUrl` |
+
+---
+
+## Output
+
+```json
+{
+  "scanned": ["go.mod", "package.json"],
+  "total": 5,
+  "results": [
+    {
+      "name": "express",
+      "version": "^4.18.0",
+      "ecosystem": "npm",
+      "type": "prod",
+      "docUrl": "https://expressjs.com",
+      "status": "resolved"
+    }
+  ]
+}
+```
+
+`status` is either `"resolved"` or `"not_found"`.
+
+---
+
+## Supported Ecosystems
+
+| Ecosystem | Manifest files | Registry |
+|---|---|---|
+| `npm` | `package.json` | registry.npmjs.org |
+| `go` | `go.mod` | proxy.golang.org / pkg.go.dev |
+| `pip` | `requirements.txt`, `pyproject.toml`, `uv.lock` | pypi.org |
+| `cargo` | `Cargo.toml` | crates.io |
+| `pub` | `pubspec.yaml` | pub.dev |
+| `maven` | `pom.xml` | search.maven.org |
+
+---
+
+## Building from Source
+
+### Prerequisites
+- [Go](https://go.dev/doc/install) 1.21+
+
+```bash
+git clone https://github.com/prohv/watchdocs-cli
+cd watchdocs-cli
+go build -o watchdocs .
+```
 
 ---
 
@@ -75,10 +103,15 @@ Currently supported:
 
 ```
 watchdocs-cli/
-├── cmd/              # CLI command definitions
+├── cmd/                  # CLI commands (scan, lookup)
 ├── internal/
-│   ├── scanner/      # Manifest file detection
-│   ├── parser/       # Manifest-specific parsing logic
-│   └── resolver/     # Gemini API integration
-└── main.go           # Entry point
+│   ├── scanner/          # Recursive manifest file detection
+│   ├── parser/           # Per-ecosystem manifest parsers
+│   ├── resolver/         # Per-ecosystem online resolvers
+│   └── models/           # Shared types (Dependency, DocResult)
+├── bin/
+│   └── watchdocs.js      # npm binary shim
+├── binaries/             # Pre-built platform binaries (not in git)
+├── package.json
+└── main.go
 ```
