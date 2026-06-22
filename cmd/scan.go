@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -11,6 +12,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ScanResult struct {
+	Scanned []string      `json:"scanned"`
+	Total   int           `json:"total"`
+	Results []DepResult   `json:"results"`
+}
+
+type DepResult struct {
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	Ecosystem string `json:"ecosystem"`
+	Type      string `json:"type"`
+	DocURL    string `json:"docUrl,omitempty"`
+	Status    string `json:"status"` // "resolved" | "not_found"
+}
+
 func init() {
 	rootCmd.AddCommand(scanCmd)
 }
@@ -19,41 +35,41 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan project for dependencies",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Scanning project...")
 		cwd, _ := os.Getwd()
 		found, err := scanner.Scan(cwd)
-
 		if err != nil {
-			fmt.Println("Error scanning:", err)
+			printError("scan_failed", err.Error())
 			return
 		}
 
 		if len(found) == 0 {
-			fmt.Println("No manifest files found!")
+			printError("no_manifests", "no manifest files found in project root")
 			return
 		}
 
+		var scanned []string
 		var allDeps []models.Dependency
+
 		for _, m := range found {
-			fmt.Printf("Found: %s\n", m.Type)
+			scanned = append(scanned, m.Type)
 
 			content, err := os.ReadFile(m.Path)
 			if err != nil {
-				fmt.Printf("Error reading %s: %v\n", m.Type, err)
+				printError("read_failed", fmt.Sprintf("could not read %s: %v", m.Type, err))
 				continue
 			}
 
 			if m.Type == "package.json" {
 				deps, err := parser.ParseNPM(m.Path)
 				if err != nil {
-					fmt.Printf("Error parsing %s: %v\n", m.Type, err)
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
 					continue
 				}
 				allDeps = append(allDeps, deps...)
 			} else if m.Type == "go.mod" {
 				deps, err := parser.ParseGoMod(string(content))
 				if err != nil {
-					fmt.Printf("Error parsing %s: %v\n", m.Type, err)
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
 					continue
 				}
 				allDeps = append(allDeps, deps...)
@@ -61,11 +77,12 @@ var scanCmd = &cobra.Command{
 		}
 
 		if len(allDeps) == 0 {
-			fmt.Println("No dependencies found.")
+			printError("no_deps", "no dependencies found in detected manifests")
 			return
 		}
 
-		fmt.Println("\n--- Resolving docs ---")
+		var results []DepResult
+
 		for _, dep := range allDeps {
 			var result *models.DocResult
 
@@ -77,10 +94,44 @@ var scanCmd = &cobra.Command{
 			}
 
 			if err != nil || result == nil || result.DocURL == "" {
-				fmt.Printf("%-40s -> (not found)\n", dep.Name)
+				results = append(results, DepResult{
+					Name:      dep.Name,
+					Version:   dep.Version,
+					Ecosystem: dep.Ecosystem,
+					Type:      dep.Type,
+					Status:    "not_found",
+				})
 				continue
 			}
-			fmt.Printf("%-40s -> %s\n", result.Name, result.DocURL)
+
+			results = append(results, DepResult{
+				Name:      result.Name,
+				Version:   result.Version,
+				Ecosystem: result.Ecosystem,
+				Type:      result.Type,
+				DocURL:    result.DocURL,
+				Status:    "resolved",
+			})
 		}
+
+		output := ScanResult{
+			Scanned: scanned,
+			Total:   len(results),
+			Results: results,
+		}
+
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		enc.Encode(output)
 	},
+}
+
+func printError(code string, msg string) {
+	type errOut struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	enc.Encode(errOut{Error: code, Message: msg})
 }
