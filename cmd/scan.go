@@ -36,6 +36,13 @@ var scanCmd = &cobra.Command{
 		var allDeps []models.Dependency
 		for _, m := range found {
 			fmt.Printf("Found: %s\n", m.Type)
+
+			content, err := os.ReadFile(m.Path)
+			if err != nil {
+				fmt.Printf("Error reading %s: %v\n", m.Type, err)
+				continue
+			}
+
 			if m.Type == "package.json" {
 				deps, err := parser.ParseNPM(m.Path)
 				if err != nil {
@@ -44,7 +51,7 @@ var scanCmd = &cobra.Command{
 				}
 				allDeps = append(allDeps, deps...)
 			} else if m.Type == "go.mod" {
-				deps, err := parser.ParseGoMod(m.Path)
+				deps, err := parser.ParseGoMod(string(content))
 				if err != nil {
 					fmt.Printf("Error parsing %s: %v\n", m.Type, err)
 					continue
@@ -60,16 +67,20 @@ var scanCmd = &cobra.Command{
 
 		fmt.Println("\n--- Resolving docs ---")
 		for _, dep := range allDeps {
-			if dep.Ecosystem == "npm" {
-				result, err := resolver.OnlineNpmResolver(dep)
-				if err != nil || result == nil {
-					fmt.Printf("%-40s -> (not found)\n", dep.Name)
-					continue
-				}
-				fmt.Printf("%-40s -> %s\n", result.Name, result.DocURL)
-			} else {
-				fmt.Printf("%-40s -> (no resolver)\n", dep.Name)
+			var result *models.DocResult
+
+			switch dep.Ecosystem {
+			case "npm":
+				result, err = resolver.OnlineNpmResolver(dep)
+			case "go":
+				result, err = resolver.OnlineGoResolver(dep)
 			}
+
+			if err != nil || result == nil || result.DocURL == "" {
+				fmt.Printf("%-40s -> (not found)\n", dep.Name)
+				continue
+			}
+			fmt.Printf("%-40s -> %s\n", result.Name, result.DocURL)
 		}
 	},
 }
