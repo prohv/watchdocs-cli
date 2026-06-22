@@ -16,6 +16,26 @@ npx @watchdocs/cli scan
 
 Scans the current directory recursively for manifest files and resolves doc URLs for all dependencies.
 
+## Flags
+
+### `scan`
+| Flag | Example | When to use |
+|---|---|---|
+| `--path` | `scan --path ./frontend` | Target a specific sub-directory |
+| `--ecosystem` | `scan --ecosystem npm,go` | Only resolve specific ecosystems |
+| `--slim` | `scan --slim` | Save tokens — returns only `name` and `docUrl` |
+
+### `lookup`
+Single package lookup — no manifest needed.
+```bash
+npx @watchdocs/cli lookup <package> --ecosystem <eco>
+npx @watchdocs/cli lookup express --ecosystem npm --slim
+```
+| Flag | When to use |
+|---|---|
+| `--ecosystem` | Required — specify ecosystem |
+| `--slim` | Save tokens — returns only `name` and `docUrl` |
+
 ## Output
 
 Returns a JSON object:

@@ -31,6 +31,7 @@ type DepResult struct {
 func init() {
 	scanCmd.Flags().StringP("path", "p", "", "Path to project directory (defaults to cwd)")
 	scanCmd.Flags().StringP("ecosystem", "e", "", "Filter by ecosystem(s), comma-separated (e.g. npm,go)")
+	scanCmd.Flags().BoolP("slim", "s", false, "Return only name and docUrl per result (saves tokens)")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -40,6 +41,7 @@ var scanCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		pathFlag, _ := cmd.Flags().GetString("path")
 		ecoFlag, _ := cmd.Flags().GetString("ecosystem")
+		slim, _ := cmd.Flags().GetBool("slim")
 
 		root := pathFlag
 		if root == "" {
@@ -176,15 +178,28 @@ var scanCmd = &cobra.Command{
 			results = append(results, result)
 		}
 
-		output := ScanResult{
-			Scanned: scanned,
-			Total:   len(results),
-			Results: results,
-		}
-
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(output)
+
+		if slim {
+			type slimResult struct {
+				Name   string `json:"name"`
+				DocURL string `json:"docUrl,omitempty"`
+			}
+			type slimOutput struct {
+				Scanned []string    `json:"scanned"`
+				Total   int         `json:"total"`
+				Results []slimResult `json:"results"`
+			}
+			var slim []slimResult
+			for _, r := range results {
+				slim = append(slim, slimResult{Name: r.Name, DocURL: r.DocURL})
+			}
+			enc.Encode(slimOutput{Scanned: scanned, Total: len(slim), Results: slim})
+			return
+		}
+
+		enc.Encode(ScanResult{Scanned: scanned, Total: len(results), Results: results})
 	},
 }
 

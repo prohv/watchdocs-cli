@@ -11,6 +11,7 @@ import (
 
 func init() {
 	lookupCmd.Flags().StringP("ecosystem", "e", "", "Ecosystem to resolve against (npm, go, pip, cargo, pub, maven)")
+	lookupCmd.Flags().BoolP("slim", "s", false, "Return only name and docUrl (saves tokens)")
 	lookupCmd.MarkFlagRequired("ecosystem")
 	rootCmd.AddCommand(lookupCmd)
 }
@@ -34,6 +35,8 @@ var lookupCmd = &cobra.Command{
 			return
 		}
 
+		slim, _ := cmd.Flags().GetBool("slim")
+
 		dep := models.Dependency{
 			Name:      name,
 			Ecosystem: ecosystem,
@@ -43,6 +46,16 @@ var lookupCmd = &cobra.Command{
 
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
+
+		if slim {
+			type slimResult struct {
+				Name   string `json:"name"`
+				DocURL string `json:"docUrl,omitempty"`
+			}
+			enc.Encode(slimResult{Name: result.Name, DocURL: result.DocURL})
+			return
+		}
+
 		enc.Encode(result)
 	},
 }
