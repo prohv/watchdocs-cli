@@ -1,0 +1,21 @@
+# Go source — not needed in npm package
+*.go
+go.mod
+go.sum
+main.go
+
+# Build artifacts
+*.exe
+*.out
+
+# Dirs to exclude
+.git/
+.gitignore
+.opencode/
+cmd/
+internal/
+bin/*.exe
+
+# Docs / config
+CHANGELOG.md
+AGENTS.md

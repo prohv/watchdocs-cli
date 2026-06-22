@@ -2,3 +2,5 @@
 *.out
 bin/
 dist/
+binaries/
+.opencode
