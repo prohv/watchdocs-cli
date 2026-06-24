@@ -26,6 +26,7 @@ Scans the current directory recursively for manifest files and resolves doc URLs
 | `--slim` | `scan --slim` | Save tokens — returns only `name` and `docUrl` |
 | `--clear-cache` | `scan --clear-cache` | Clear local cache before scanning |
 | `--no-cache` | `scan --no-cache` | Disable reading and writing to cache |
+| `--format` / `-f` | `scan -f list` | Change output format: `json` (default) or `list` |
 
 ### `lookup`
 Single package lookup — no manifest needed.
@@ -39,6 +40,7 @@ npx @watchdocs/cli lookup express --ecosystem npm --slim
 | `--slim` | Save tokens — returns only `name` and `docUrl` |
 | `--clear-cache` | Clear local cache before looking up |
 | `--no-cache` | Disable reading and writing to cache |
+| `--format` / `-f` | Change output format: `json` (default) or `list` |
 
 ## Output
 

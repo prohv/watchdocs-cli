@@ -32,6 +32,7 @@ watchdocs scan --slim
 | `--slim` | Return only `name` and `docUrl` per result (saves tokens) |
 | `--clear-cache` | Clear the local cache before scanning |
 | `--no-cache` | Disable reading and writing to the local cache |
+| `--format, -f <format>` | Output format: `json` (default) or `list` |
 
 ---
 
@@ -51,6 +52,7 @@ watchdocs lookup requests --ecosystem pip --slim
 | `--slim` | Return only `name` and `docUrl` |
 | `--clear-cache` | Clear the local cache before looking up |
 | `--no-cache` | Disable reading and writing to the local cache |
+| `--format, -f <format>` | Output format: `json` (default) or `list` |
 
 ---
 

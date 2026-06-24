@@ -36,6 +36,7 @@ func init() {
 	scanCmd.Flags().BoolP("slim", "s", false, "Return only name and docUrl per result (saves tokens)")
 	scanCmd.Flags().Bool("clear-cache", false, "Clear the local cache before scanning")
 	scanCmd.Flags().Bool("no-cache", false, "Disable reading/writing to the local cache")
+	scanCmd.Flags().StringP("format", "f", "json", "Output format (json | list)")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -48,6 +49,8 @@ var scanCmd = &cobra.Command{
 		slim, _ := cmd.Flags().GetBool("slim")
 		clearCache, _ := cmd.Flags().GetBool("clear-cache")
 		noCache, _ := cmd.Flags().GetBool("no-cache")
+		formatFlag, _ := cmd.Flags().GetString("format")
+		formatFlag = strings.ToLower(strings.TrimSpace(formatFlag))
 
 		root := pathFlag
 		if root == "" {
@@ -260,6 +263,11 @@ var scanCmd = &cobra.Command{
 			}
 		}
 
+		if formatFlag == "list" || formatFlag == "l" {
+			printScanList(results, slim, scanned)
+			return
+		}
+
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 
@@ -332,4 +340,18 @@ func printError(code string, msg string) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	enc.Encode(errOut{Error: code, Message: msg})
+}
+
+func printScanList(results []DepResult, slim bool, scanned []string) {
+	for _, r := range results {
+		docLink := "Not resolved"
+		if r.DocURL != "" {
+			docLink = fmt.Sprintf("[docs](%s)", r.DocURL)
+		}
+		if slim {
+			fmt.Printf("- **%s** - %s\n", r.Name, docLink)
+		} else {
+			fmt.Printf("- **%s** (%s) - %s\n", r.Name, r.Version, docLink)
+		}
+	}
 }

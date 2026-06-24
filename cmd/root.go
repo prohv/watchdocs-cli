@@ -24,10 +24,12 @@ Commands:
     -p, --path <dir>           Target directory (default: cwd)
     -e, --ecosystem <list>     Filter to specific ecosystems, e.g. npm,go
     -s, --slim                 Return only name + docUrl (saves tokens)
+    -f, --format <format>      Output format: json (default) or list
 
   lookup <package> [flags]     Lookup a single package without a manifest
     -e, --ecosystem <eco>      Required: npm | go | pip | cargo | pub | maven
     -s, --slim                 Return only name + docUrl (saves tokens)
+    -f, --format <format>      Output format: json (default) or list
 
 Flags:
   -h, --help                   Show this help
