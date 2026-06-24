@@ -55,9 +55,10 @@ func Scan(root string) ([]DetectedManifest, error) {
 			return nil
 		}
 
-		if manifests[d.Name()] {
+		name := d.Name()
+		if manifests[name] || filepath.Ext(name) == ".csproj" || name == "packages.config" || name == "Directory.Packages.props" {
 			found = append(found, DetectedManifest{
-				Type: d.Name(),
+				Type: name,
 				Path: path,
 			})
 		}

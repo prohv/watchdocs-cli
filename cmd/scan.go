@@ -154,6 +154,20 @@ var scanCmd = &cobra.Command{
 					continue
 				}
 				allDeps = append(allDeps, deps...)
+			} else if strings.HasSuffix(m.Type, ".csproj") || m.Type == "Directory.Packages.props" {
+				deps, err := parser.ParseCSProj(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "packages.config" {
+				deps, err := parser.ParsePackagesConfig(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			}
 		}
 
@@ -310,6 +324,8 @@ func resolveDoc(dep models.Dependency) DepResult {
 		result, err = resolver.OnlinePubResolver(dep)
 	case "maven":
 		result, err = resolver.OnlineMavenResolver(dep)
+	case "nuget":
+		result, err = resolver.OnlineNuGetResolver(dep)
 	}
 
 	if err != nil || result == nil || result.DocURL == "" {

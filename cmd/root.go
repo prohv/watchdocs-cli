@@ -27,14 +27,14 @@ Commands:
     -f, --format <format>      Output format: json (default) or list
 
   lookup <package> [flags]     Lookup a single package without a manifest
-    -e, --ecosystem <eco>      Required: npm | go | pip | cargo | pub | maven
+    -e, --ecosystem <eco>      Required: npm | go | pip | cargo | pub | maven | nuget
     -s, --slim                 Return only name + docUrl (saves tokens)
     -f, --format <format>      Output format: json (default) or list
 
 Flags:
   -h, --help                   Show this help
 
-Supported ecosystems:  npm · go · pip · cargo · pub · maven
-Supported manifests:   package.json · go.mod · requirements.txt · pyproject.toml · uv.lock · Cargo.toml · pom.xml · pubspec.yaml
+Supported ecosystems:  npm · go · pip · cargo · pub · maven · nuget
+Supported manifests:   package.json · go.mod · requirements.txt · pyproject.toml · uv.lock · Cargo.toml · pom.xml · pubspec.yaml · *.csproj · packages.config · Directory.Packages.props
 `)
 }

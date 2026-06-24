@@ -89,6 +89,7 @@ watchdocs lookup requests --ecosystem pip --slim
 | `cargo` | `Cargo.toml` | crates.io |
 | `pub` | `pubspec.yaml` | pub.dev |
 | `maven` | `pom.xml` | search.maven.org |
+| `nuget` | `*.csproj`, `packages.config`, `Directory.Packages.props` | api.nuget.org |
 
 ---
 
