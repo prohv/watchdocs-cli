@@ -1,6 +1,6 @@
 {
   "name": "watchdocs",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "An LLM-friendly NPM CLI tool for AI agents and developers to scan project dependencies and instantly extract official documentation URLs.",
   "keywords": ["watchdocs", "ai-agents", "llm-tools", "cli-tool", "dependency-scanner", "documentation-finder", "npm-cli", "project-scan", "agentic"],
   "license": "MIT",

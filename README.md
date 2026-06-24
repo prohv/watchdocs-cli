@@ -124,3 +124,9 @@ watchdocs-cli/
 ├── package.json
 └── main.go
 ```
+
+---
+
+## GitHub Repository
+
+Check out the source code, open issues, or contribute at [github.com/prohv/watchdocs-cli](https://github.com/prohv/watchdocs-cli).

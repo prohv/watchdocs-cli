@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v0.1.6] - 2026-06-24
+
+### Added
+- Local persistent cache (in OS-standard cache folder) for resolved dependency doc URLs
+- Support for NuGet ecosystem (`.csproj`, `packages.config`, `Directory.Packages.props` files)
+- Support for Composer PHP ecosystem (`composer.json` files)
+- Support for Swift Package Manager (`Package.resolved` files) with local-first pre-resolving (0-network request scans)
+- Option to select terminal-friendly list output using `--format list` / `-f list`
+
+### Changed
+- CLI `--help` outputs updated to include the new cache and format options
+
 ## [v0.1.5] - 2026-06-23
 
 ### Changed
@@ -18,6 +30,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Unified `--help` output showing all commands and flags in a single view
 - Updated package description and keywords for better discoverability
+
+## [v0.1.3] - 2026-06-22
+
+### Changed
+- Internal project path cleanups and version boundary checks
 
 ## [v0.1.2] - 2026-06-22
 
