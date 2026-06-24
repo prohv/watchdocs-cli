@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/prohv/watchdocs-cli/internal/cache"
 	"github.com/prohv/watchdocs-cli/internal/models"
 	"github.com/prohv/watchdocs-cli/internal/parser"
 	"github.com/prohv/watchdocs-cli/internal/resolver"
@@ -33,6 +34,8 @@ func init() {
 	scanCmd.Flags().StringP("path", "p", "", "Path to project directory (defaults to cwd)")
 	scanCmd.Flags().StringP("ecosystem", "e", "", "Filter by ecosystem(s), comma-separated (e.g. npm,go)")
 	scanCmd.Flags().BoolP("slim", "s", false, "Return only name and docUrl per result (saves tokens)")
+	scanCmd.Flags().Bool("clear-cache", false, "Clear the local cache before scanning")
+	scanCmd.Flags().Bool("no-cache", false, "Disable reading/writing to the local cache")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -43,10 +46,22 @@ var scanCmd = &cobra.Command{
 		pathFlag, _ := cmd.Flags().GetString("path")
 		ecoFlag, _ := cmd.Flags().GetString("ecosystem")
 		slim, _ := cmd.Flags().GetBool("slim")
+		clearCache, _ := cmd.Flags().GetBool("clear-cache")
+		noCache, _ := cmd.Flags().GetBool("no-cache")
 
 		root := pathFlag
 		if root == "" {
 			root, _ = os.Getwd()
+		}
+
+		// Initialize Cache
+		var c *cache.Cache
+		if !noCache {
+			var err error
+			c, err = cache.NewCache()
+			if err == nil && clearCache {
+				_ = c.Clear()
+			}
 		}
 
 		// build ecosystem filter set
@@ -172,33 +187,77 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		type indexedResult struct {
-			index  int
-			result DepResult
-		}
-
 		results := make([]DepResult, len(allDeps))
-		ch := make(chan indexedResult, len(allDeps))
-		sem := make(chan struct{}, 16)
-		var wg sync.WaitGroup
+		var uncachedIndices []int
 
+		// 1. Look up cached packages
 		for i, dep := range allDeps {
-			wg.Add(1)
-			go func(i int, dep models.Dependency) {
-				defer wg.Done()
-				sem <- struct{}{}        // acquire slot
-				defer func() { <-sem }() // release slot
-				ch <- indexedResult{index: i, result: resolveDoc(dep)}
-			}(i, dep)
+			if !noCache && c != nil {
+				if cachedURL, found := c.Get(dep.Ecosystem, dep.Name); found {
+					docURL := cachedURL
+					if dep.Ecosystem == "go" && dep.Version != "" {
+						docURL = fmt.Sprintf("%s@%s", cachedURL, dep.Version)
+					}
+					results[i] = DepResult{
+						Name:      dep.Name,
+						Version:   dep.Version,
+						Ecosystem: dep.Ecosystem,
+						Type:      dep.Type,
+						DocURL:    docURL,
+						Status:    "resolved",
+					}
+					continue
+				}
+			}
+			uncachedIndices = append(uncachedIndices, i)
 		}
 
-		go func() {
-			wg.Wait()
-			close(ch)
-		}()
+		// 2. Resolve uncached packages concurrently
+		if len(uncachedIndices) > 0 {
+			type indexedResult struct {
+				index  int
+				result DepResult
+			}
 
-		for r := range ch {
-			results[r.index] = r.result
+			ch := make(chan indexedResult, len(uncachedIndices))
+			sem := make(chan struct{}, 16)
+			var wg sync.WaitGroup
+
+			for _, idx := range uncachedIndices {
+				wg.Add(1)
+				go func(i int, dep models.Dependency) {
+					defer wg.Done()
+					sem <- struct{}{}        // acquire slot
+					defer func() { <-sem }() // release slot
+
+					res := resolveDoc(dep)
+
+					// Save to in-memory cache if resolved successfully
+					if !noCache && c != nil && res.Status == "resolved" && res.DocURL != "" {
+						cacheURL := res.DocURL
+						if dep.Ecosystem == "go" {
+							cacheURL = strings.SplitN(res.DocURL, "@", 2)[0]
+						}
+						c.Set(dep.Ecosystem, dep.Name, cacheURL)
+					}
+
+					ch <- indexedResult{index: i, result: res}
+				}(idx, allDeps[idx])
+			}
+
+			go func() {
+				wg.Wait()
+				close(ch)
+			}()
+
+			for r := range ch {
+				results[r.index] = r.result
+			}
+
+			// Persist the cache to disk at the end
+			if !noCache && c != nil {
+				_ = c.Save()
+			}
 		}
 
 		enc := json.NewEncoder(os.Stdout)

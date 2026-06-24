@@ -30,6 +30,8 @@ watchdocs scan --slim
 | `--path <dir>` | Target a specific directory instead of cwd |
 | `--ecosystem <list>` | Filter by ecosystem(s), comma-separated |
 | `--slim` | Return only `name` and `docUrl` per result (saves tokens) |
+| `--clear-cache` | Clear the local cache before scanning |
+| `--no-cache` | Disable reading and writing to the local cache |
 
 ---
 
@@ -47,6 +49,8 @@ watchdocs lookup requests --ecosystem pip --slim
 |---|---|
 | `--ecosystem <eco>` | Required — one of: `npm`, `go`, `pip`, `cargo`, `pub`, `maven` |
 | `--slim` | Return only `name` and `docUrl` |
+| `--clear-cache` | Clear the local cache before looking up |
+| `--no-cache` | Disable reading and writing to the local cache |
 
 ---
 
