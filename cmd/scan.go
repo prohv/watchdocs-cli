@@ -168,6 +168,20 @@ var scanCmd = &cobra.Command{
 					continue
 				}
 				allDeps = append(allDeps, deps...)
+			} else if m.Type == "composer.json" {
+				deps, err := parser.ParseComposer(m.Path)
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "Package.resolved" {
+				deps, err := parser.ParseSwiftResolved(m.Path)
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			}
 		}
 
@@ -207,8 +221,20 @@ var scanCmd = &cobra.Command{
 		results := make([]DepResult, len(allDeps))
 		var uncachedIndices []int
 
-		// 1. Look up cached packages
+		// 1. Look up cached packages or pre-resolved URLs
 		for i, dep := range allDeps {
+			if dep.DocURL != "" {
+				results[i] = DepResult{
+					Name:      dep.Name,
+					Version:   dep.Version,
+					Ecosystem: dep.Ecosystem,
+					Type:      dep.Type,
+					DocURL:    dep.DocURL,
+					Status:    "resolved",
+				}
+				continue
+			}
+
 			if !noCache && c != nil {
 				if cachedURL, found := c.Get(dep.Ecosystem, dep.Name); found {
 					docURL := cachedURL
@@ -326,6 +352,10 @@ func resolveDoc(dep models.Dependency) DepResult {
 		result, err = resolver.OnlineMavenResolver(dep)
 	case "nuget":
 		result, err = resolver.OnlineNuGetResolver(dep)
+	case "composer":
+		result, err = resolver.OnlineComposerResolver(dep)
+	case "swift":
+		result, err = resolver.OnlineSwiftResolver(dep)
 	}
 
 	if err != nil || result == nil || result.DocURL == "" {

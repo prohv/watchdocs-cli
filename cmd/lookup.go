@@ -37,10 +37,11 @@ var lookupCmd = &cobra.Command{
 		validEcosystems := map[string]bool{
 			"npm": true, "go": true, "pip": true,
 			"cargo": true, "pub": true, "maven": true, "nuget": true,
+			"composer": true, "swift": true,
 		}
 
 		if !validEcosystems[ecosystem] {
-			printError("invalid_ecosystem", "must be one of: npm, go, pip, cargo, pub, maven, nuget")
+			printError("invalid_ecosystem", "must be one of: npm, go, pip, cargo, pub, maven, nuget, composer, swift")
 			return
 		}
 

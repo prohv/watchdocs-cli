@@ -90,6 +90,8 @@ watchdocs lookup requests --ecosystem pip --slim
 | `pub` | `pubspec.yaml` | pub.dev |
 | `maven` | `pom.xml` | search.maven.org |
 | `nuget` | `*.csproj`, `packages.config`, `Directory.Packages.props` | api.nuget.org |
+| `composer` | `composer.json` | packagist.org |
+| `swift` | `Package.resolved` | github.com / swiftpackageindex.com |
 
 ---
 

@@ -67,8 +67,8 @@ Returns a JSON object:
 
 ## Supported ecosystems
 
-`npm` · `go` · `pip` · `cargo` · `pub` · `maven` · `nuget`
+`npm` · `go` · `pip` · `cargo` · `pub` · `maven` · `nuget` · `composer` · `swift`
 
 ## Supported manifest files
 
-`package.json` · `go.mod` · `requirements.txt` · `pyproject.toml` · `uv.lock` · `Cargo.toml` · `pom.xml` · `pubspec.yaml` · `*.csproj` · `packages.config` · `Directory.Packages.props`
+`package.json` · `go.mod` · `requirements.txt` · `pyproject.toml` · `uv.lock` · `Cargo.toml` · `pom.xml` · `pubspec.yaml` · `*.csproj` · `packages.config` · `Directory.Packages.props` · `composer.json` · `Package.resolved`
