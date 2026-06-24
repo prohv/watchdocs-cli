@@ -11,14 +11,16 @@ type DetectedManifest struct {
 }
 
 var manifests = map[string]bool{
-	"package.json":  true,
-	"go.mod":        true,
-	"requirements.txt": true,
-	"pyproject.toml": true,
-	"Cargo.toml":    true,
-	"pom.xml":       true,
-	"uv.lock":       true,
-	"pubspec.yaml":  true,
+	"package.json":      true,
+	"go.mod":            true,
+	"requirements.txt":  true,
+	"pyproject.toml":    true,
+	"Cargo.toml":        true,
+	"pom.xml":           true,
+	"uv.lock":           true,
+	"pubspec.yaml":      true,
+	"composer.json":     true,
+	"Package.resolved":  true,
 }
 
 // heavy directories to skip — equivalent to VS Code's exclude globs
@@ -55,9 +57,10 @@ func Scan(root string) ([]DetectedManifest, error) {
 			return nil
 		}
 
-		if manifests[d.Name()] {
+		name := d.Name()
+		if manifests[name] || filepath.Ext(name) == ".csproj" || name == "packages.config" || name == "Directory.Packages.props" {
 			found = append(found, DetectedManifest{
-				Type: d.Name(),
+				Type: name,
 				Path: path,
 			})
 		}

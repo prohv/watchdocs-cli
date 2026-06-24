@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/prohv/watchdocs-cli/internal/cache"
 	"github.com/prohv/watchdocs-cli/internal/models"
 	"github.com/prohv/watchdocs-cli/internal/parser"
 	"github.com/prohv/watchdocs-cli/internal/resolver"
@@ -33,6 +34,9 @@ func init() {
 	scanCmd.Flags().StringP("path", "p", "", "Path to project directory (defaults to cwd)")
 	scanCmd.Flags().StringP("ecosystem", "e", "", "Filter by ecosystem(s), comma-separated (e.g. npm,go)")
 	scanCmd.Flags().BoolP("slim", "s", false, "Return only name and docUrl per result (saves tokens)")
+	scanCmd.Flags().Bool("clear-cache", false, "Clear the local cache before scanning")
+	scanCmd.Flags().Bool("no-cache", false, "Disable reading/writing to the local cache")
+	scanCmd.Flags().StringP("format", "f", "json", "Output format (json | list)")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -43,10 +47,24 @@ var scanCmd = &cobra.Command{
 		pathFlag, _ := cmd.Flags().GetString("path")
 		ecoFlag, _ := cmd.Flags().GetString("ecosystem")
 		slim, _ := cmd.Flags().GetBool("slim")
+		clearCache, _ := cmd.Flags().GetBool("clear-cache")
+		noCache, _ := cmd.Flags().GetBool("no-cache")
+		formatFlag, _ := cmd.Flags().GetString("format")
+		formatFlag = strings.ToLower(strings.TrimSpace(formatFlag))
 
 		root := pathFlag
 		if root == "" {
 			root, _ = os.Getwd()
+		}
+
+		// Initialize Cache
+		var c *cache.Cache
+		if !noCache {
+			var err error
+			c, err = cache.NewCache()
+			if err == nil && clearCache {
+				_ = c.Clear()
+			}
 		}
 
 		// build ecosystem filter set
@@ -136,6 +154,34 @@ var scanCmd = &cobra.Command{
 					continue
 				}
 				allDeps = append(allDeps, deps...)
+			} else if strings.HasSuffix(m.Type, ".csproj") || m.Type == "Directory.Packages.props" {
+				deps, err := parser.ParseCSProj(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "packages.config" {
+				deps, err := parser.ParsePackagesConfig(string(content))
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "composer.json" {
+				deps, err := parser.ParseComposer(m.Path)
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
+			} else if m.Type == "Package.resolved" {
+				deps, err := parser.ParseSwiftResolved(m.Path)
+				if err != nil {
+					printError("parse_failed", fmt.Sprintf("could not parse %s: %v", m.Type, err))
+					continue
+				}
+				allDeps = append(allDeps, deps...)
 			}
 		}
 
@@ -172,33 +218,94 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		type indexedResult struct {
-			index  int
-			result DepResult
-		}
-
 		results := make([]DepResult, len(allDeps))
-		ch := make(chan indexedResult, len(allDeps))
-		sem := make(chan struct{}, 16)
-		var wg sync.WaitGroup
+		var uncachedIndices []int
 
+		// 1. Look up cached packages or pre-resolved URLs
 		for i, dep := range allDeps {
-			wg.Add(1)
-			go func(i int, dep models.Dependency) {
-				defer wg.Done()
-				sem <- struct{}{}        // acquire slot
-				defer func() { <-sem }() // release slot
-				ch <- indexedResult{index: i, result: resolveDoc(dep)}
-			}(i, dep)
+			if dep.DocURL != "" {
+				results[i] = DepResult{
+					Name:      dep.Name,
+					Version:   dep.Version,
+					Ecosystem: dep.Ecosystem,
+					Type:      dep.Type,
+					DocURL:    dep.DocURL,
+					Status:    "resolved",
+				}
+				continue
+			}
+
+			if !noCache && c != nil {
+				if cachedURL, found := c.Get(dep.Ecosystem, dep.Name); found {
+					docURL := cachedURL
+					if dep.Ecosystem == "go" && dep.Version != "" {
+						docURL = fmt.Sprintf("%s@%s", cachedURL, dep.Version)
+					}
+					results[i] = DepResult{
+						Name:      dep.Name,
+						Version:   dep.Version,
+						Ecosystem: dep.Ecosystem,
+						Type:      dep.Type,
+						DocURL:    docURL,
+						Status:    "resolved",
+					}
+					continue
+				}
+			}
+			uncachedIndices = append(uncachedIndices, i)
 		}
 
-		go func() {
-			wg.Wait()
-			close(ch)
-		}()
+		// 2. Resolve uncached packages concurrently
+		if len(uncachedIndices) > 0 {
+			type indexedResult struct {
+				index  int
+				result DepResult
+			}
 
-		for r := range ch {
-			results[r.index] = r.result
+			ch := make(chan indexedResult, len(uncachedIndices))
+			sem := make(chan struct{}, 16)
+			var wg sync.WaitGroup
+
+			for _, idx := range uncachedIndices {
+				wg.Add(1)
+				go func(i int, dep models.Dependency) {
+					defer wg.Done()
+					sem <- struct{}{}        // acquire slot
+					defer func() { <-sem }() // release slot
+
+					res := resolveDoc(dep)
+
+					// Save to in-memory cache if resolved successfully
+					if !noCache && c != nil && res.Status == "resolved" && res.DocURL != "" {
+						cacheURL := res.DocURL
+						if dep.Ecosystem == "go" {
+							cacheURL = strings.SplitN(res.DocURL, "@", 2)[0]
+						}
+						c.Set(dep.Ecosystem, dep.Name, cacheURL)
+					}
+
+					ch <- indexedResult{index: i, result: res}
+				}(idx, allDeps[idx])
+			}
+
+			go func() {
+				wg.Wait()
+				close(ch)
+			}()
+
+			for r := range ch {
+				results[r.index] = r.result
+			}
+
+			// Persist the cache to disk at the end
+			if !noCache && c != nil {
+				_ = c.Save()
+			}
+		}
+
+		if formatFlag == "list" || formatFlag == "l" {
+			printScanList(results, slim, scanned)
+			return
 		}
 
 		enc := json.NewEncoder(os.Stdout)
@@ -243,6 +350,12 @@ func resolveDoc(dep models.Dependency) DepResult {
 		result, err = resolver.OnlinePubResolver(dep)
 	case "maven":
 		result, err = resolver.OnlineMavenResolver(dep)
+	case "nuget":
+		result, err = resolver.OnlineNuGetResolver(dep)
+	case "composer":
+		result, err = resolver.OnlineComposerResolver(dep)
+	case "swift":
+		result, err = resolver.OnlineSwiftResolver(dep)
 	}
 
 	if err != nil || result == nil || result.DocURL == "" {
@@ -273,4 +386,18 @@ func printError(code string, msg string) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	enc.Encode(errOut{Error: code, Message: msg})
+}
+
+func printScanList(results []DepResult, slim bool, scanned []string) {
+	for _, r := range results {
+		docLink := "Not resolved"
+		if r.DocURL != "" {
+			docLink = fmt.Sprintf("[docs](%s)", r.DocURL)
+		}
+		if slim {
+			fmt.Printf("- **%s** - %s\n", r.Name, docLink)
+		} else {
+			fmt.Printf("- **%s** (%s) - %s\n", r.Name, r.Version, docLink)
+		}
+	}
 }

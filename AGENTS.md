@@ -24,6 +24,9 @@ Scans the current directory recursively for manifest files and resolves doc URLs
 | `--path` | `scan --path ./frontend` | Target a specific sub-directory |
 | `--ecosystem` | `scan --ecosystem npm,go` | Only resolve specific ecosystems |
 | `--slim` | `scan --slim` | Save tokens — returns only `name` and `docUrl` |
+| `--clear-cache` | `scan --clear-cache` | Clear local cache before scanning |
+| `--no-cache` | `scan --no-cache` | Disable reading and writing to cache |
+| `--format` / `-f` | `scan -f list` | Change output format: `json` (default) or `list` |
 
 ### `lookup`
 Single package lookup — no manifest needed.
@@ -35,6 +38,9 @@ npx @watchdocs/cli lookup express --ecosystem npm --slim
 |---|---|
 | `--ecosystem` | Required — specify ecosystem |
 | `--slim` | Save tokens — returns only `name` and `docUrl` |
+| `--clear-cache` | Clear local cache before looking up |
+| `--no-cache` | Disable reading and writing to cache |
+| `--format` / `-f` | Change output format: `json` (default) or `list` |
 
 ## Output
 
@@ -61,8 +67,8 @@ Returns a JSON object:
 
 ## Supported ecosystems
 
-`npm` · `go` · `pip` · `cargo` · `pub` · `maven`
+`npm` · `go` · `pip` · `cargo` · `pub` · `maven` · `nuget` · `composer` · `swift`
 
 ## Supported manifest files
 
-`package.json` · `go.mod` · `requirements.txt` · `pyproject.toml` · `uv.lock` · `Cargo.toml` · `pom.xml` · `pubspec.yaml`
+`package.json` · `go.mod` · `requirements.txt` · `pyproject.toml` · `uv.lock` · `Cargo.toml` · `pom.xml` · `pubspec.yaml` · `*.csproj` · `packages.config` · `Directory.Packages.props` · `composer.json` · `Package.resolved`

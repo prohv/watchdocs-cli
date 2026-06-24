@@ -30,6 +30,9 @@ watchdocs scan --slim
 | `--path <dir>` | Target a specific directory instead of cwd |
 | `--ecosystem <list>` | Filter by ecosystem(s), comma-separated |
 | `--slim` | Return only `name` and `docUrl` per result (saves tokens) |
+| `--clear-cache` | Clear the local cache before scanning |
+| `--no-cache` | Disable reading and writing to the local cache |
+| `--format, -f <format>` | Output format: `json` (default) or `list` |
 
 ---
 
@@ -47,6 +50,9 @@ watchdocs lookup requests --ecosystem pip --slim
 |---|---|
 | `--ecosystem <eco>` | Required — one of: `npm`, `go`, `pip`, `cargo`, `pub`, `maven` |
 | `--slim` | Return only `name` and `docUrl` |
+| `--clear-cache` | Clear the local cache before looking up |
+| `--no-cache` | Disable reading and writing to the local cache |
+| `--format, -f <format>` | Output format: `json` (default) or `list` |
 
 ---
 
@@ -83,6 +89,9 @@ watchdocs lookup requests --ecosystem pip --slim
 | `cargo` | `Cargo.toml` | crates.io |
 | `pub` | `pubspec.yaml` | pub.dev |
 | `maven` | `pom.xml` | search.maven.org |
+| `nuget` | `*.csproj`, `packages.config`, `Directory.Packages.props` | api.nuget.org |
+| `composer` | `composer.json` | packagist.org |
+| `swift` | `Package.resolved` | github.com / swiftpackageindex.com |
 
 ---
 
@@ -115,3 +124,9 @@ watchdocs-cli/
 ├── package.json
 └── main.go
 ```
+
+---
+
+## GitHub Repository
+
+Check out the source code, open issues, or contribute at [github.com/prohv/watchdocs-cli](https://github.com/prohv/watchdocs-cli).

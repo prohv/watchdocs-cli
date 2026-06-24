@@ -5,6 +5,7 @@ type Dependency struct {
 	Version   string
 	Ecosystem string
 	Type      string // "prod" | "dev"
+	DocURL    string // Optional: pre-resolved URL from lockfile
 }
 
 type DocResult struct {
